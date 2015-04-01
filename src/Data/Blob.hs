@@ -6,13 +6,20 @@
 
 module Data.Blob where
 
-import Data.Blob.Types
+import           Data.Blob.FileOperations
+import           Data.Blob.Types
 
-create :: Blob -> IO BlobId
-create = undefined
+-- | Write a blob to a unique file
+write :: Blob -> IO BlobId
+write (Blob b) = do
+  (filename, handle) <- createUniqueFile "blob"
+  writeToHandle handle b
+  return filename
 
+-- | Read a blob, given a unique blob id
 read :: BlobId -> IO Blob
-read = undefined
+read blobid = fmap Blob $ readFromFile blobid
 
-delete :: Blob -> IO ()
-delete = undefined
+-- | Delete the file corresponding to the blob id
+delete :: BlobId -> IO ()
+delete = deleteFile
