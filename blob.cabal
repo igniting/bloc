@@ -1,0 +1,19 @@
+name: blob
+version: 0.1.0.0
+cabal-version: >=1.10
+build-type: Simple
+license: BSD3
+license-file: LICENSE
+maintainer: anshu.avinash35@gmail.com
+category: Data
+author: Anshu Avinash
+
+library
+    build-depends:
+        base >=4.7 && <4.8,
+        bytestring >=0.10 && <0.11
+    exposed-modules:
+        Data.Blob
+        Data.Blob.Types
+    default-language: Haskell2010
+    hs-source-dirs: src
