@@ -12,7 +12,7 @@ import           Data.Blob.Types
 -- | Write a blob to a unique file
 write :: Blob -> IO BlobId
 write (Blob b) = do
-  (filename, handle) <- createUniqueFile "blob"
+  (filename, handle) <- createUniqueFile
   writeToHandle handle b
   return filename
 
