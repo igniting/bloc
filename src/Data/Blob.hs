@@ -6,20 +6,21 @@
 
 module Data.Blob where
 
-import           Data.Blob.FileOperations
+import qualified Data.Blob.FileOperations as F
 import           Data.Blob.Types
 
--- | Write a blob to a unique file
-write :: Blob -> IO BlobId
-write (Blob b) = do
-  (filename, handle) <- createUniqueFile
-  writeToHandle handle b
-  return filename
+-- | Create file for storing the blob
+createBlob :: FilePath -> IO BlobId
+createBlob = F.createUniqueFile
+
+-- | Write part of blob to a given blob id
+writePartial :: BlobId -> Blob -> IO ()
+writePartial blobid (Blob b) = F.appendFile blobid b
 
 -- | Read a blob, given a unique blob id
-read :: BlobId -> IO Blob
-read blobid = fmap Blob $ readFromFile blobid
+readBlob :: BlobId -> IO Blob
+readBlob blobid = fmap Blob $ F.readFromFile blobid
 
 -- | Delete the file corresponding to the blob id
-delete :: BlobId -> IO ()
-delete = deleteFile
+deleteBlob :: BlobId -> IO ()
+deleteBlob = F.deleteFile
