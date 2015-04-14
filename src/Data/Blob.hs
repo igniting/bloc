@@ -17,9 +17,17 @@ createBlob = F.createUniqueFile
 writePartial :: BlobId -> Blob -> IO ()
 writePartial blobid (Blob b) = F.appendFile blobid b
 
--- | Read a blob, given a unique blob id
-readBlob :: BlobId -> IO Blob
-readBlob blobid = fmap Blob $ F.readFromFile blobid
+-- | Open file for reading
+initRead :: BlobId -> IO BlobHandle
+initRead = F.openFile
+
+-- | Read given number of bytes from the blob handle
+readBlobPartial :: BlobHandle -> Int -> IO Blob
+readBlobPartial h sz = fmap Blob $ F.readFromHandle h sz
+
+-- | Complete reading from a file
+finalizeRead :: BlobHandle -> IO ()
+finalizeRead = F.closeHandle
 
 -- | Delete the file corresponding to the blob id
 deleteBlob :: BlobId -> IO ()

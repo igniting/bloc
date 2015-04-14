@@ -6,7 +6,9 @@
 
 module Data.Blob.Types where
 
-import Data.ByteString (ByteString)
+import           Data.ByteString (ByteString)
+import           System.IO
 
-newtype Blob    = Blob ByteString
-type    BlobId  = FilePath
+newtype Blob       = Blob ByteString
+type    BlobId     = FilePath
+type    BlobHandle = Handle
