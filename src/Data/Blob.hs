@@ -13,17 +13,25 @@ import           Data.Blob.Types
 createBlob :: FilePath -> IO BlobId
 createBlob = F.createUniqueFile
 
+-- | Open file for writing
+initWrite :: BlobId -> IO BlobHandle
+initWrite = F.openFileForWrite
+
 -- | Write part of blob to a given blob id
-writePartial :: BlobId -> Blob -> IO ()
-writePartial blobid (Blob b) = F.appendFile blobid b
+writePartial :: BlobHandle -> Blob -> IO ()
+writePartial h (Blob b) = F.writeToHandle h b
+
+-- | Finalize write
+finalizeWrite :: BlobHandle -> IO ()
+finalizeWrite = F.closeHandle
 
 -- | Open file for reading
 initRead :: BlobId -> IO BlobHandle
-initRead = F.openFile
+initRead = F.openFileForRead
 
 -- | Read given number of bytes from the blob handle
-readBlobPartial :: BlobHandle -> Int -> IO Blob
-readBlobPartial h sz = fmap Blob $ F.readFromHandle h sz
+readPartial :: BlobHandle -> Int -> IO Blob
+readPartial h sz = fmap Blob $ F.readFromHandle h sz
 
 -- | Complete reading from a file
 finalizeRead :: BlobHandle -> IO ()

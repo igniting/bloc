@@ -28,16 +28,23 @@ createUniqueFile baseDir = do
 createFile :: FilePath -> IO ()
 createFile path = B.writeFile path B.empty
 
--- | Append a ByteString to a file
-appendFile :: FilePath -> B.ByteString -> IO ()
-appendFile = B.appendFile
+-- | Open file for writing
+openFileForWrite :: FilePath -> IO S.Handle
+openFileForWrite path = do
+  h <- S.openFile path S.AppendMode
+  S.hSetBuffering h S.NoBuffering
+  return h
 
 -- | Open file for reading
-openFile :: FilePath -> IO S.Handle
-openFile path = do
+openFileForRead :: FilePath -> IO S.Handle
+openFileForRead path = do
   h <- S.openFile path S.ReadMode
   S.hSetBuffering h S.NoBuffering
   return h
+
+-- | Write contents to a given handle
+writeToHandle :: S.Handle -> B.ByteString -> IO ()
+writeToHandle = B.hPut
 
 -- | Read contents from a given handle
 readFromHandle :: S.Handle -> Int -> IO B.ByteString
