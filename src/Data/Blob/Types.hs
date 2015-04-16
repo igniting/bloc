@@ -6,9 +6,21 @@
 
 module Data.Blob.Types where
 
-import           Data.ByteString (ByteString)
+import           Crypto.Hash.SHA512
+import           Data.ByteString    (ByteString)
 import           System.IO
 
-newtype Blob       = Blob ByteString
-type    BlobId     = FilePath
-type    BlobHandle = Handle
+newtype Blob           = Blob ByteString
+
+data    Location       = Location { baseDir  :: FilePath
+                                  , fullPath :: FilePath
+                                  }
+
+data    WriteContext   = WriteContext { writeLoc    :: Location
+                                      , writeHandle :: Handle
+                                      , hashCtx     :: Ctx
+                                      }
+
+data    ReadContext    = ReadContext { readLoc    :: Location
+                                     , readHandle :: Handle
+                                     }
