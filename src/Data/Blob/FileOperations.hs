@@ -6,14 +6,14 @@
 
 module Data.Blob.FileOperations where
 
-import qualified Data.ByteString        as B
-import           Data.ByteString.Base64 (encode)
-import           Data.ByteString.Char8  (unpack)
-import           Data.UUID              (toString)
-import           Data.UUID.V4           (nextRandom)
+import qualified Data.ByteString            as B
+import           Data.ByteString.Base64.URL (encode)
+import           Data.ByteString.Char8      (unpack)
+import           Data.UUID                  (toString)
+import           Data.UUID.V4               (nextRandom)
 import           System.Directory
-import           System.FilePath.Posix  ((</>))
-import qualified System.IO              as S
+import           System.FilePath.Posix      ((</>))
+import qualified System.IO                  as S
 
 
 -- | Directory for storing partial blobs
