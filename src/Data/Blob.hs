@@ -4,7 +4,19 @@
   Stability   : Experimental
 -}
 
-module Data.Blob where
+module Data.Blob ( Blob (..)
+                 , Location (..)
+                 , WriteContext
+                 , ReadContext
+                 , createBlob
+                 , initWrite
+                 , writePartial
+                 , finalizeWrite
+                 , initRead
+                 , readPartial
+                 , finalizeRead
+                 , deleteBlob
+                 ) where
 
 import qualified Crypto.Hash.SHA512       as SHA512
 import qualified Data.Blob.FileOperations as F
