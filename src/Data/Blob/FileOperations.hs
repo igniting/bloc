@@ -7,7 +7,7 @@
 module Data.Blob.FileOperations where
 
 import qualified Data.ByteString            as B
-import           Data.ByteString.Base64.URL (encode)
+import           Data.ByteString.Base16     (encode)
 import           Data.ByteString.Char8      (unpack)
 import           Data.UUID                  (toString)
 import           Data.UUID.V4               (nextRandom)
