@@ -21,6 +21,7 @@ module Data.Blob ( Blob (..)
 import qualified Crypto.Hash.SHA512       as SHA512
 import qualified Data.Blob.FileOperations as F
 import           Data.Blob.Types
+import           System.Directory         (doesFileExist)
 
 -- | Create file for storing the blob
 createBlob :: FilePath -> IO Location
@@ -49,9 +50,20 @@ finalizeWrite (WriteContext l h ctx) = do
   newpath <- F.moveFile (F.getTempPath l) (baseDir l) newfilename
   return $ Location (baseDir l) newpath
 
--- | Open file for reading
+-- | Open blob for reading
+-- The blob can be at two locations: curr/old
+-- We first check in curr and if not found, read from old
 initRead :: Location -> IO ReadContext
-initRead = undefined
+initRead loc = do
+  let activePath = F.getActivePath loc
+  chkInActive <- doesFileExist activePath
+  if chkInActive
+     then do
+       h <- F.openFileForRead activePath
+       return $ ReadContext loc h
+     else do
+       h <- F.openFileForRead $ F.getOldPath loc
+       return $ ReadContext loc h
 
 -- | Read given number of bytes from the blob handle
 readPartial :: ReadContext -> Int -> IO Blob
@@ -63,4 +75,7 @@ finalizeRead (ReadContext _ h) = F.closeHandle h
 
 -- | Delete the file corresponding to the blob id
 deleteBlob :: Location -> IO ()
-deleteBlob = undefined
+deleteBlob loc = do
+  let activePath = F.getActivePath loc
+  chkInActive <- doesFileExist activePath
+  F.deleteFile $ if chkInActive then activePath else F.getOldPath loc

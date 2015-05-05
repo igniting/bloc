@@ -29,9 +29,17 @@ activeDir = "curr"
 oldDir :: FilePath
 oldDir = "old"
 
--- | Return full path for blob stored in temp
+-- | Return full path for blob stored in temp directory
 getTempPath :: Location -> FilePath
 getTempPath loc = baseDir loc </> tempDir </> blobName loc
+
+-- | Return full path for blob stored in old directory
+getOldPath :: Location -> FilePath
+getOldPath loc = baseDir loc </> oldDir </> blobName loc
+
+-- | Return full path for blob stored in active directory
+getActivePath :: Location -> FilePath
+getActivePath loc = baseDir loc </> activeDir </> blobName loc
 
 -- | Creates a unique file in the temp directory
 createUniqueFile :: FilePath -> IO FilePath
