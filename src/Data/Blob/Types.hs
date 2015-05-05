@@ -10,17 +10,17 @@ import           Crypto.Hash.SHA512
 import           Data.ByteString    (ByteString)
 import           System.IO
 
-newtype Blob           = Blob ByteString
+newtype Blob = Blob ByteString
 
-data    Location       = Location { baseDir  :: FilePath
-                                  , fullPath :: FilePath
-                                  }
+data Location = Location { baseDir  :: FilePath
+                         , blobName :: FilePath
+                         }
 
-data    WriteContext   = WriteContext { writeLoc    :: Location
-                                      , writeHandle :: Handle
-                                      , hashCtx     :: Ctx
-                                      }
+data WriteContext = WriteContext { writeLoc    :: Location
+                                 , writeHandle :: Handle
+                                 , hashCtx     :: Ctx
+                                 }
 
-data    ReadContext    = ReadContext { readLoc    :: Location
-                                     , readHandle :: Handle
-                                     }
+data ReadContext = ReadContext { readLoc    :: Location
+                               , readHandle :: Handle
+                               }

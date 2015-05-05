@@ -25,13 +25,13 @@ import           Data.Blob.Types
 -- | Create file for storing the blob
 createBlob :: FilePath -> IO Location
 createBlob dir = do
-  newpath <- F.createUniqueFile dir
-  return $ Location dir newpath
+  filename <- F.createUniqueFile dir
+  return $ Location dir filename
 
 -- | Open file for writing
 initWrite :: Location -> IO WriteContext
 initWrite loc = do
-  h <- F.openFileForWrite $ fullPath loc
+  h <- F.openFileForWrite $ F.getTempPath loc
   return $ WriteContext loc h SHA512.init
 
 -- | Write part of blob to a given blob id
@@ -46,14 +46,12 @@ finalizeWrite :: WriteContext -> IO Location
 finalizeWrite (WriteContext l h ctx) = do
   F.closeHandle h
   let newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
-  newpath <- F.moveFile (fullPath l) (baseDir l) newfilename
+  newpath <- F.moveFile (F.getTempPath l) (baseDir l) newfilename
   return $ Location (baseDir l) newpath
 
 -- | Open file for reading
 initRead :: Location -> IO ReadContext
-initRead loc = do
-  h <- F.openFileForRead $ fullPath loc
-  return $ ReadContext loc h
+initRead = undefined
 
 -- | Read given number of bytes from the blob handle
 readPartial :: ReadContext -> Int -> IO Blob
@@ -65,4 +63,4 @@ finalizeRead (ReadContext _ h) = F.closeHandle h
 
 -- | Delete the file corresponding to the blob id
 deleteBlob :: Location -> IO ()
-deleteBlob (Location _ path) = F.deleteFile path
+deleteBlob = undefined

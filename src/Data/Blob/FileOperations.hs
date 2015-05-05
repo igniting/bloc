@@ -6,14 +6,15 @@
 
 module Data.Blob.FileOperations where
 
-import qualified Data.ByteString            as B
-import           Data.ByteString.Base16     (encode)
-import           Data.ByteString.Char8      (unpack)
-import           Data.UUID                  (toString)
-import           Data.UUID.V4               (nextRandom)
+import           Data.Blob.Types
+import qualified Data.ByteString        as B
+import           Data.ByteString.Base16 (encode)
+import           Data.ByteString.Char8  (unpack)
+import           Data.UUID              (toString)
+import           Data.UUID.V4           (nextRandom)
 import           System.Directory
-import           System.FilePath.Posix      ((</>))
-import qualified System.IO                  as S
+import           System.FilePath.Posix  ((</>))
+import qualified System.IO              as S
 
 
 -- | Directory for storing partial blobs
@@ -24,21 +25,29 @@ tempDir = "tmp"
 activeDir :: FilePath
 activeDir = "curr"
 
+-- | Directory for storing blobs while GC
+oldDir :: FilePath
+oldDir = "old"
+
+-- | Return full path for blob stored in temp
+getTempPath :: Location -> FilePath
+getTempPath loc = baseDir loc </> tempDir </> blobName loc
+
 -- | Creates a unique file in the temp directory
 createUniqueFile :: FilePath -> IO FilePath
-createUniqueFile baseDir = do
+createUniqueFile dir = do
   filename <- fmap toString nextRandom
   -- Create parent directory if missing
-  let parentDir = baseDir </> tempDir
+  let parentDir = dir </> tempDir
   createDirectoryIfMissing True parentDir
   let absoluteFilePath = parentDir </> filename
   createFile absoluteFilePath
-  return absoluteFilePath
+  return filename
 
 -- | Move file to active directory
 moveFile :: FilePath -> FilePath -> FilePath -> IO FilePath
-moveFile path baseDir filename = do
-  let parentDir = baseDir </> activeDir
+moveFile path dir filename = do
+  let parentDir = dir </> activeDir
   createDirectoryIfMissing True parentDir
   let newPath = parentDir </> filename
   renameFile path newPath
