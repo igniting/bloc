@@ -10,7 +10,7 @@ import           Crypto.Hash.SHA512
 import           Data.ByteString    (ByteString)
 import           System.IO
 
-newtype Blob = Blob ByteString
+newtype Blob = Blob ByteString deriving (Eq)
 
 data Location = Location { baseDir  :: FilePath
                          , blobName :: FilePath
