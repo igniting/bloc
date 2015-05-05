@@ -19,6 +19,7 @@ library
         base16-bytestring >=0.1 && <0.2
     exposed-modules:
         Data.Blob
+        Data.Blob.GC
     other-modules:
         Data.Blob.Types
         Data.Blob.FileOperations
