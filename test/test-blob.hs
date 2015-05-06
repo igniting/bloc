@@ -1,6 +1,7 @@
 import           Data.Blob
 import           Data.Blob.GC
 import           Data.ByteString.Char8   (pack)
+import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
@@ -51,6 +52,9 @@ propCreateDuringGC s = monadicIO $ do
 
 main :: IO ()
 main = do
-  quickCheckWith stdArgs { maxSuccess = 50 } propWriteAndRead
-  quickCheckWith stdArgs { maxSuccess = 50 } propReadDuringGC
-  quickCheckWith stdArgs { maxSuccess = 50 } propCreateDuringGC
+  hspec $ do
+    describe "basic" $
+      it "should be able to read from blob just written" $ property propWriteAndRead
+    describe "gc" $ do
+      it "should be able to read blobs during GC" $ property propReadDuringGC
+      it "should be able to create blobs during GC" $ property propCreateDuringGC

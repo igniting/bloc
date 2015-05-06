@@ -36,7 +36,8 @@ test-suite test-blob
         filepath >=1.4 && <1.5,
         cryptohash >=0.11 && <0.12,
         base16-bytestring >=0.1 && <0.2,
-        QuickCheck >=2.8 && <2.9
+        QuickCheck >=2.8 && <2.9,
+        hspec >=2.1 && <2.2
     type: exitcode-stdio-1.0
     main-is: test/test-blob.hs
     default-language: Haskell2010
