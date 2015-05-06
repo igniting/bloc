@@ -6,6 +6,7 @@
 
 module Data.Blob.GC where
 
+import           Control.Monad            (when)
 import           Data.Blob.FileOperations
 import           Data.Blob.Types
 import           System.Directory
@@ -23,7 +24,8 @@ startGC dir = do
      then error "Another GC already in progress."
      else do
        let currDir = dir </> activeDir
-       renameDirectory currDir gcDir
+       checkCurrDir <- doesDirectoryExist currDir
+       when checkCurrDir $ renameDirectory currDir gcDir
        return ()
 
 -- | Mark a blob as accessible during a GC.
@@ -35,4 +37,7 @@ markBlobAsAccessible loc = renameFile (getOldPath loc) (getActivePath loc)
 -- This deletes the "old directory" which now contains only
 -- the unreferenced blobs.
 endGC :: FilePath -> IO ()
-endGC dir = removeDirectoryRecursive (dir </> oldDir)
+endGC dir = do
+  let gcDir = dir </> oldDir
+  checkgcDir <- doesDirectoryExist gcDir
+  when checkgcDir $ removeDirectoryRecursive (dir </> oldDir)
