@@ -41,6 +41,16 @@ propReadDuringGC s = monadicIO $ do
   run $ finalizeRead rc
   assert (Blob (pack s) == bs)
 
+-- | Should be able to read "safe" blobs during GC
+propReadMarkedDuringGC :: String -> Property
+propReadMarkedDuringGC s = monadicIO $ do
+  loc <- run $ writeStringToBlob s
+  run $ startGC testDir
+  run $ markBlobAsAccessible loc
+  bs <- run $ readFromBlob (length s) loc
+  run $ endGC testDir
+  assert (Blob (pack s) == bs)
+
 -- | Should be able to create blobs during GC
 propCreateDuringGC :: String -> Property
 propCreateDuringGC s = monadicIO $ do
@@ -51,10 +61,10 @@ propCreateDuringGC s = monadicIO $ do
   assert (Blob (pack s) == bs)
 
 main :: IO ()
-main = do
-  hspec $ do
-    describe "basic" $
-      it "should be able to read from blob just written" $ property propWriteAndRead
-    describe "gc" $ do
-      it "should be able to read blobs during GC" $ property propReadDuringGC
-      it "should be able to create blobs during GC" $ property propCreateDuringGC
+main = hspec $ do
+  describe "basic" $
+    it "should be able to read from blob just written" $ property propWriteAndRead
+  describe "gc" $ do
+    it "should be able to read blobs during GC" $ property propReadDuringGC
+    it "should be able to create blobs during GC" $ property propCreateDuringGC
+    it "should be able to read moved blobs during GC" $ property propReadMarkedDuringGC
