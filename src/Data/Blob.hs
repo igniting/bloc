@@ -47,8 +47,8 @@ finalizeWrite :: WriteContext -> IO Location
 finalizeWrite (WriteContext l h ctx) = do
   F.closeHandle h
   let newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
-  newpath <- F.moveFile (F.getTempPath l) (baseDir l) newfilename
-  return $ Location (baseDir l) newpath
+  F.moveFile (F.getTempPath l) (baseDir l) newfilename
+  return $ Location (baseDir l) newfilename
 
 -- | Open blob for reading
 -- The blob can be at two locations: curr/old

@@ -53,13 +53,12 @@ createUniqueFile dir = do
   return filename
 
 -- | Move file to active directory
-moveFile :: FilePath -> FilePath -> FilePath -> IO FilePath
+moveFile :: FilePath -> FilePath -> FilePath -> IO ()
 moveFile path dir filename = do
   let parentDir = dir </> activeDir
   createDirectoryIfMissing True parentDir
   let newPath = parentDir </> filename
   renameFile path newPath
-  return newPath
 
 -- | Create an empty file.
 -- | If the file exists, replace it with an empty file
