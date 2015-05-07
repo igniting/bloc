@@ -26,6 +26,7 @@ startGC dir = do
        let currDir = dir </> activeDir
        checkCurrDir <- doesDirectoryExist currDir
        when checkCurrDir $ renameDirectory currDir gcDir
+       createDirectoryIfMissing True currDir
        return ()
 
 -- | Mark a blob as accessible during a GC.
