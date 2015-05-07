@@ -9,14 +9,14 @@ testDir :: FilePath
 testDir = "/tmp/blob-test-dir"
 
 -- | Write the given string as contents of a blob and return it's location
-writeStringToBlob :: String -> IO Location
+writeStringToBlob :: String -> IO BlobId
 writeStringToBlob s = createBlob testDir >>=
   initWrite >>=
   (\wc -> writePartial wc (Blob (pack s))) >>=
   finalizeWrite
 
 -- | Read given length from a location
-readFromBlob :: Int -> Location -> IO Blob
+readFromBlob :: Int -> BlobId -> IO Blob
 readFromBlob size loc = do
   rc <- initRead loc
   bs <- readPartial rc size

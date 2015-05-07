@@ -31,7 +31,7 @@ startGC dir = do
 
 -- | Mark a blob as accessible during a GC.
 -- This moves the blob from "old directory" to active directory.
-markBlobAsAccessible :: Location -> IO ()
+markBlobAsAccessible :: BlobId -> IO ()
 markBlobAsAccessible loc = renameFile (getOldPath loc) (getActivePath loc)
 
 -- | Stops the garbage collection.

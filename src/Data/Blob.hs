@@ -5,7 +5,8 @@
 -}
 
 module Data.Blob ( Blob (..)
-                 , Location (..)
+                 , BlobId
+                 , TempLocation
                  , WriteContext
                  , ReadContext
                  , createBlob
@@ -24,13 +25,13 @@ import           Data.Blob.Types
 import           System.Directory         (doesFileExist)
 
 -- | Create file for storing the blob
-createBlob :: FilePath -> IO Location
+createBlob :: FilePath -> IO TempLocation
 createBlob dir = do
   filename <- F.createUniqueFile dir
-  return $ Location dir filename
+  return $ TempLocation dir filename
 
 -- | Open file for writing
-initWrite :: Location -> IO WriteContext
+initWrite :: TempLocation -> IO WriteContext
 initWrite loc = do
   h <- F.openFileForWrite $ F.getTempPath loc
   return $ WriteContext loc h SHA512.init
@@ -43,17 +44,17 @@ writePartial (WriteContext l h ctx) (Blob b) = do
   return $ WriteContext l h newctx
 
 -- | Finalize write
-finalizeWrite :: WriteContext -> IO Location
+finalizeWrite :: WriteContext -> IO BlobId
 finalizeWrite (WriteContext l h ctx) = do
   F.closeHandle h
   let newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
   F.moveFile (F.getTempPath l) (baseDir l) newfilename
-  return $ Location (baseDir l) newfilename
+  return $ BlobId (baseDir l) newfilename
 
 -- | Open blob for reading
 -- The blob can be at two locations: curr/old
 -- We first check in curr and if not found, read from old
-initRead :: Location -> IO ReadContext
+initRead :: BlobId -> IO ReadContext
 initRead loc = do
   let activePath = F.getActivePath loc
   chkInActive <- doesFileExist activePath
@@ -74,7 +75,7 @@ finalizeRead :: ReadContext -> IO ()
 finalizeRead (ReadContext _ h) = F.closeHandle h
 
 -- | Delete the file corresponding to the blob id
-deleteBlob :: Location -> IO ()
+deleteBlob :: BlobId -> IO ()
 deleteBlob loc = do
   let activePath = F.getActivePath loc
   chkInActive <- doesFileExist activePath

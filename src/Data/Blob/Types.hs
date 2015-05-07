@@ -12,15 +12,27 @@ import           System.IO
 
 newtype Blob = Blob ByteString deriving (Eq)
 
-data Location = Location { baseDir  :: FilePath
-                         , blobName :: FilePath
-                         }
+class Location a where
+  baseDir   :: a -> FilePath
+  blobName  :: a -> FilePath
 
-data WriteContext = WriteContext { writeLoc    :: Location
+data TempLocation = TempLocation FilePath FilePath
+
+instance Location TempLocation where
+  baseDir  (TempLocation dir _)  = dir
+  blobName (TempLocation _ name) = name
+
+data BlobId = BlobId FilePath FilePath
+
+instance Location BlobId where
+  baseDir  (BlobId dir _)  = dir
+  blobName (BlobId _ name) = name
+
+data WriteContext = WriteContext { writeLoc    :: TempLocation
                                  , writeHandle :: Handle
                                  , hashCtx     :: Ctx
                                  }
 
-data ReadContext = ReadContext { readLoc    :: Location
+data ReadContext = ReadContext { readLoc    :: BlobId
                                , readHandle :: Handle
                                }
