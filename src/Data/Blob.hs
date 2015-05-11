@@ -6,11 +6,9 @@
 
 module Data.Blob ( Blob (..)
                  , BlobId
-                 , TempLocation
                  , WriteContext
                  , ReadContext
                  , createBlob
-                 , initWrite
                  , writePartial
                  , finalizeWrite
                  , initRead
@@ -24,17 +22,13 @@ import qualified Data.Blob.FileOperations as F
 import           Data.Blob.Types
 import           System.Directory         (doesFileExist)
 
--- | Create file for storing the blob
-createBlob :: FilePath -> IO TempLocation
+-- | Create file for storing the blob and open it for writing
+createBlob :: FilePath -> IO WriteContext
 createBlob dir = do
   filename <- F.createUniqueFile dir
-  return $ TempLocation dir filename
-
--- | Open file for writing
-initWrite :: TempLocation -> IO WriteContext
-initWrite loc = do
-  h <- F.openFileForWrite $ F.getTempPath loc
-  return $ WriteContext loc h SHA512.init
+  let temploc = TempLocation dir filename
+  h <- F.openFileForWrite $ F.getTempPath temploc
+  return $ WriteContext temploc h SHA512.init
 
 -- | Write part of blob to a given blob id
 writePartial :: WriteContext -> Blob -> IO WriteContext
