@@ -33,6 +33,4 @@ data WriteContext = WriteContext { writeLoc    :: TempLocation
                                  , hashCtx     :: Ctx
                                  }
 
-data ReadContext = ReadContext { readLoc    :: BlobId
-                               , readHandle :: Handle
-                               }
+data ReadContext = ReadContext Handle

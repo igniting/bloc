@@ -52,21 +52,16 @@ initRead :: BlobId -> IO ReadContext
 initRead loc = do
   let activePath = F.getActivePath loc
   chkInActive <- doesFileExist activePath
-  if chkInActive
-     then do
-       h <- F.openFileForRead activePath
-       return $ ReadContext loc h
-     else do
-       h <- F.openFileForRead $ F.getOldPath loc
-       return $ ReadContext loc h
+  let pathForRead = if chkInActive then activePath else F.getOldPath loc
+  fmap ReadContext $ F.openFileForRead pathForRead
 
 -- | Read given number of bytes from the blob handle
 readPartial :: ReadContext -> Int -> IO Blob
-readPartial (ReadContext _ h) sz = fmap Blob $ F.readFromHandle h sz
+readPartial (ReadContext h) sz = fmap Blob $ F.readFromHandle h sz
 
 -- | Complete reading from a file
 finalizeRead :: ReadContext -> IO ()
-finalizeRead (ReadContext _ h) = F.closeHandle h
+finalizeRead (ReadContext h) = F.closeHandle h
 
 -- | Delete the file corresponding to the blob id
 deleteBlob :: BlobId -> IO ()
