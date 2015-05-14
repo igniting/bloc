@@ -10,7 +10,8 @@ testDir = "/tmp/blob-test-dir"
 
 -- | Write the given string as contents of a blob and return it's location
 writeStringToBlob :: String -> IO BlobId
-writeStringToBlob s = createBlob testDir >>=
+writeStringToBlob s = initBlobStore testDir >>=
+  createBlob >>=
   (\wc -> writePartial wc (Blob (pack s))) >>=
   finalizeWrite
 

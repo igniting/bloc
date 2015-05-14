@@ -6,8 +6,10 @@
 
 module Data.Blob ( Blob (..)
                  , BlobId
+                 , BlobStore
                  , WriteContext
                  , ReadContext
+                 , initBlobStore
                  , createBlob
                  , writePartial
                  , finalizeWrite
@@ -22,9 +24,15 @@ import qualified Data.Blob.FileOperations as F
 import           Data.Blob.Types
 import           System.Directory         (doesFileExist)
 
+initBlobStore :: FilePath -> IO BlobStore
+initBlobStore dir = do
+  F.createTempIfMissing dir
+  F.createActiveIfMissing dir
+  return $ BlobStore dir
+
 -- | Create file for storing the blob and open it for writing
-createBlob :: FilePath -> IO WriteContext
-createBlob dir = do
+createBlob :: BlobStore -> IO WriteContext
+createBlob (BlobStore dir) = do
   filename <- F.createUniqueFile dir
   let temploc = TempLocation dir filename
   h <- F.openFileForWrite $ F.getTempPath temploc

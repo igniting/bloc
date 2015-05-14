@@ -41,6 +41,14 @@ getOldPath loc = baseDir loc </> oldDir </> blobName loc
 getActivePath :: BlobId -> FilePath
 getActivePath loc = baseDir loc </> activeDir </> blobName loc
 
+-- | Create temp directory if missing
+createTempIfMissing :: FilePath -> IO ()
+createTempIfMissing dir = createDirectoryIfMissing True (dir </> tempDir)
+
+-- | Create active directory if missing
+createActiveIfMissing :: FilePath -> IO ()
+createActiveIfMissing dir = createDirectoryIfMissing True (dir </> activeDir)
+
 -- | Creates a unique file in the temp directory
 createUniqueFile :: FilePath -> IO FilePath
 createUniqueFile dir = do

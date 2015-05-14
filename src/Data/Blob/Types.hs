@@ -12,6 +12,8 @@ import           System.IO
 
 newtype Blob = Blob ByteString deriving (Eq)
 
+newtype BlobStore = BlobStore FilePath
+
 class Location a where
   baseDir   :: a -> FilePath
   blobName  :: a -> FilePath

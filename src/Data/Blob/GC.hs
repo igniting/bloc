@@ -24,9 +24,8 @@ startGC dir = do
      then error "Another GC already in progress."
      else do
        let currDir = dir </> activeDir
-       checkCurrDir <- doesDirectoryExist currDir
-       when checkCurrDir $ renameDirectory currDir gcDir
-       createDirectoryIfMissing True currDir
+       renameDirectory currDir gcDir
+       createDirectory currDir
        return ()
 
 -- | Mark a blob as accessible during a GC.
