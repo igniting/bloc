@@ -15,7 +15,7 @@ import           Data.UUID.V4           (nextRandom)
 import           System.Directory
 import           System.FilePath.Posix  ((</>))
 import qualified System.IO              as S
-
+import           System.IO.Error        (tryIOError)
 
 -- | Directory for storing partial blobs
 tempDir :: FilePath
@@ -61,12 +61,21 @@ createUniqueFile dir = do
   return filename
 
 -- | Move file to active directory
+-- Handle the case when the active directory might not be present
+-- This can happen in startGC where activeDir is renamed to oldDir and
+-- activeDir has not be created yet
 moveFile :: FilePath -> FilePath -> FilePath -> IO ()
-moveFile path dir filename = do
-  let parentDir = dir </> activeDir
-  createDirectoryIfMissing True parentDir
-  let newPath = parentDir </> filename
-  renameFile path newPath
+moveFile path dir filename = tryMoveFile 0 path newPath where
+  newPath = dir </> activeDir </> filename
+  maxTries = 5
+  tryMoveFile :: Int -> FilePath -> FilePath -> IO ()
+  tryMoveFile count path' newPath'
+    | count > maxTries = error $ "Maximum tries reached while moving " ++ path'
+    | otherwise        = do
+      r <- tryIOError $ renameFile path' newPath'
+      case r of
+           Left _ -> tryMoveFile (count + 1) path' newPath'
+           _ -> return ()
 
 -- | Create an empty file.
 -- | If the file exists, replace it with an empty file
