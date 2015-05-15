@@ -1,6 +1,6 @@
-blob
+bloc
 ====
 
-[![Build Status](https://travis-ci.org/igniting/blob.svg?branch=master)](https://travis-ci.org/igniting/blob)
+[![Build Status](https://travis-ci.org/TypeDB/bloc.svg?branch=master)](https://travis-ci.org/TypeDB/bloc)
 
-Read and write large binary values to disk.
+Binary Large Objects with Concurrency
