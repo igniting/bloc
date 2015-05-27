@@ -15,6 +15,7 @@ module Data.Blob ( Blob (..)
                  , finalizeWrite
                  , initRead
                  , readPartial
+                 , skipBytes
                  , finalizeRead
                  , deleteBlob
                  ) where
@@ -66,6 +67,10 @@ initRead loc = do
 -- | Read given number of bytes from the blob handle
 readPartial :: ReadContext -> Int -> IO Blob
 readPartial (ReadContext h) sz = fmap Blob $ F.readFromHandle h sz
+
+-- | Skip given number of bytes ahead in the blob
+skipBytes :: ReadContext -> Integer -> IO ()
+skipBytes (ReadContext h) = F.seekHandle h
 
 -- | Complete reading from a file
 finalizeRead :: ReadContext -> IO ()

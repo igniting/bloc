@@ -104,6 +104,10 @@ writeToHandle = B.hPut
 readFromHandle :: S.Handle -> Int -> IO B.ByteString
 readFromHandle = B.hGet
 
+-- | Skip given number of bytes forward
+seekHandle :: S.Handle -> Integer -> IO ()
+seekHandle handle = S.hSeek handle S.RelativeSeek
+
 -- | Close the given handle
 closeHandle :: S.Handle -> IO ()
 closeHandle = S.hClose

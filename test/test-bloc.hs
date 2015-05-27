@@ -60,10 +60,22 @@ propCreateDuringGC s = monadicIO $ do
   bs <- run $ readFromBlob (length s) loc
   assert (Blob (pack s) == bs)
 
+-- | Should be able to skip bytes while reading
+propSkipBytes :: String -> String -> Property
+propSkipBytes s1 s2 = monadicIO $ do
+  loc <- run $ writeStringToBlob (s1 ++ s2)
+  rc <- run $ initRead loc
+  run $ skipBytes rc (fromIntegral $ length s1)
+  bs <- run $ readPartial rc (length s2)
+  run $ finalizeRead rc
+  assert (Blob (pack s2) == bs)
+
 main :: IO ()
 main = hspec $ do
   describe "basic" $
     it "should be able to read from blob just written" $ property propWriteAndRead
+  describe "read" $
+    it "should be able to skip bytes while reading" $ property propSkipBytes
   describe "gc" $ do
     it "should be able to read blobs during GC" $ property propReadDuringGC
     it "should be able to create blobs during GC" $ property propCreateDuringGC
