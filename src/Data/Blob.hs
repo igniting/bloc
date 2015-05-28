@@ -49,7 +49,7 @@ writePartial (WriteContext l h ctx) (Blob b) = do
 -- | Finalize write
 finalizeWrite :: WriteContext -> IO BlobId
 finalizeWrite (WriteContext l h ctx) = do
-  F.closeHandle h
+  F.syncAndClose h
   let newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
   F.moveFile (F.getTempPath l) (baseDir l) newfilename
   return $ BlobId (baseDir l) newfilename

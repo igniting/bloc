@@ -12,10 +12,14 @@ import           Data.ByteString.Base16 (encode)
 import           Data.ByteString.Char8  (unpack)
 import           Data.UUID              (toString)
 import           Data.UUID.V4           (nextRandom)
+import           Foreign.C.Error        (throwErrnoIfMinus1_)
+import           Foreign.C.Types        (CInt (..))
 import           System.Directory
 import           System.FilePath.Posix  ((</>))
 import qualified System.IO              as S
 import           System.IO.Error        (tryIOError)
+import           System.Posix.IO        (handleToFd)
+import           System.Posix.Types     (Fd (..))
 
 -- | Directory for storing partial blobs
 tempDir :: FilePath
@@ -111,6 +115,16 @@ seekHandle handle = S.hSeek handle S.RelativeSeek
 -- | Close the given handle
 closeHandle :: S.Handle -> IO ()
 closeHandle = S.hClose
+
+-- | Sync the data to disk
+syncAndClose :: S.Handle -> IO ()
+syncAndClose handle = handleToFd handle >>= fsync
+
+-- | Binding to the C fsync function
+fsync :: Fd -> IO ()
+fsync (Fd fd) = throwErrnoIfMinus1_ "fsync" $ c_fsync fd
+
+foreign import ccall "fsync" c_fsync :: CInt -> IO CInt
 
 -- | Delete the given file
 deleteFile :: FilePath -> IO ()
