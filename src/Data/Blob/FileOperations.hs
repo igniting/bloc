@@ -6,6 +6,8 @@
 
 module Data.Blob.FileOperations where
 
+import           Control.Exception      (bracket)
+import           Control.Monad          (unless, void, when)
 import           Data.Blob.Types
 import qualified Data.ByteString        as B
 import           Data.ByteString.Base16 (encode)
@@ -18,6 +20,8 @@ import           System.Directory
 import           System.FilePath.Posix  ((</>))
 import qualified System.IO              as S
 import           System.IO.Error        (tryIOError)
+import           System.Posix.Directory (DirStream, closeDirStream,
+                                         openDirStream, readDirStream)
 import           System.Posix.IO        (handleToFd)
 import           System.Posix.Types     (Fd (..))
 
@@ -65,26 +69,20 @@ createUniqueFile dir = do
   return filename
 
 -- | Move file to active directory
--- Handle the case when the active directory might not be present
--- This can happen in startGC where activeDir is renamed to oldDir and
--- activeDir has not be created yet
 moveFile :: FilePath -> FilePath -> FilePath -> IO ()
-moveFile path dir filename = tryMoveFile 0 path newPath where
+moveFile path dir filename = renameFile path newPath where
   newPath = dir </> activeDir </> filename
-  maxTries = 5
-  tryMoveFile :: Int -> FilePath -> FilePath -> IO ()
-  tryMoveFile count path' newPath'
-    | count > maxTries = error $ "Maximum tries reached while moving " ++ path'
-    | otherwise        = do
-      r <- tryIOError $ renameFile path' newPath'
-      case r of
-           Left _ -> tryMoveFile (count + 1) path' newPath'
-           _ -> return ()
 
 -- | Create an empty file.
 -- | If the file exists, replace it with an empty file
 createFile :: FilePath -> IO ()
 createFile path = B.writeFile path B.empty
+
+-- | Create an empty file in a given directory
+createFileInDir :: FilePath  -- ^ Parent directory
+                -> FilePath  -- ^ File name
+                -> IO ()
+createFileInDir dir name = createFile (dir </> name)
 
 -- | Open file for writing
 openFileForWrite :: FilePath -> IO S.Handle
@@ -130,6 +128,30 @@ foreign import ccall "fsync" c_fsync :: CInt -> IO CInt
 deleteFile :: FilePath -> IO ()
 deleteFile = removeFile
 
+-- | Delete the file by name and base directory
+deleteFileInDir :: FilePath -- ^ Base directory
+                -> FilePath -- ^ File name
+                -> IO ()
+deleteFileInDir dir name = deleteFile (dir </> name)
+
+-- | Try to delete the given file from gc directory
+tryDeleteFileFromOld :: FilePath -> FilePath -> IO ()
+tryDeleteFileFromOld dir filename = void $ tryIOError $ deleteFile (dir </> oldDir </> filename)
+
 -- | Generate a printable file name
 toFileName :: B.ByteString -> FilePath
 toFileName = unpack . encode
+
+-- | Perform an action on all files of a given directory
+forAllInDirectory :: FilePath             -- ^ Path of base directory
+                  -> (FilePath -> IO ())  -- ^ Action to be performed on each file
+                  -> IO ()
+forAllInDirectory dir action = bracket (openDirStream dir) closeDirStream loop where
+  loop :: DirStream -> IO ()
+  loop dirstream = do
+    e <- readDirStream dirstream
+    unless (null e) $ do
+      when (isProperFile e) $ action e
+      loop dirstream
+  isProperFile :: FilePath -> Bool
+  isProperFile filename = filename /= "." && filename /= ".."

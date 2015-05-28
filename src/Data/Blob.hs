@@ -23,7 +23,6 @@ module Data.Blob ( Blob (..)
 import qualified Crypto.Hash.SHA512       as SHA512
 import qualified Data.Blob.FileOperations as F
 import           Data.Blob.Types
-import           System.Directory         (doesFileExist)
 
 initBlobStore :: FilePath -> IO BlobStore
 initBlobStore dir = do
@@ -51,18 +50,13 @@ finalizeWrite :: WriteContext -> IO BlobId
 finalizeWrite (WriteContext l h ctx) = do
   F.syncAndClose h
   let newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
+  F.tryDeleteFileFromOld (baseDir l) newfilename
   F.moveFile (F.getTempPath l) (baseDir l) newfilename
   return $ BlobId (baseDir l) newfilename
 
 -- | Open blob for reading
--- The blob can be at two locations: curr/old
--- We first check in curr and if not found, read from old
 initRead :: BlobId -> IO ReadContext
-initRead loc = do
-  let activePath = F.getActivePath loc
-  chkInActive <- doesFileExist activePath
-  let pathForRead = if chkInActive then activePath else F.getOldPath loc
-  fmap ReadContext $ F.openFileForRead pathForRead
+initRead loc = fmap ReadContext $ F.openFileForRead (F.getActivePath loc)
 
 -- | Read given number of bytes from the blob handle
 readPartial :: ReadContext -> Int -> IO Blob
@@ -78,7 +72,4 @@ finalizeRead (ReadContext h) = F.closeHandle h
 
 -- | Delete the file corresponding to the blob id
 deleteBlob :: BlobId -> IO ()
-deleteBlob loc = do
-  let activePath = F.getActivePath loc
-  chkInActive <- doesFileExist activePath
-  F.deleteFile $ if chkInActive then activePath else F.getOldPath loc
+deleteBlob = F.deleteFile . F.getActivePath
