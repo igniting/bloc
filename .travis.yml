@@ -3,8 +3,8 @@ notifications:
 
 env:
  - CABALVER=1.18 GHCVER=7.6.3
- - CABALVER=1.18 GHCVER=7.8.4
- - CABALVER=1.22 GHCVER=7.10.1
+ - CABALVER=1.18 GHCVER=7.8.4 STACKAGEVER=snapshot/lts-2.11
+ - CABALVER=1.22 GHCVER=7.10.1 STACKAGEVER=nightly
 
 # Note: the distinction between `before_install` and `install` is not important.
 before_install:
@@ -16,6 +16,10 @@ before_install:
 install:
  - cabal --version
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
+ - |
+   if [ -n "$STACKAGEVER" ]; then
+       wget https://www.stackage.org/$STACKAGEVER/cabal.config
+   fi
  - travis_retry cabal update
  - cabal install --only-dependencies --enable-tests --enable-benchmarks
 
