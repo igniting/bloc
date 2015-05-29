@@ -25,52 +25,48 @@ import           System.Posix.IO        (handleToFd)
 import           System.Posix.Types     (Fd (..))
 
 -- | Directory for storing partial blobs
-tempDir :: FilePath
-tempDir = "tmp"
+tempDirName :: FilePath
+tempDirName = "tmp"
 
 -- | Directory for storing active blobs
-activeDir :: FilePath
-activeDir = "curr"
+currDirName :: FilePath
+currDirName = "curr"
 
--- | Directory for storing blobs while GC
-oldDir :: FilePath
-oldDir = "old"
+-- | Directory for storing file names of blobs during GC
+gcDirName :: FilePath
+gcDirName = "gc"
 
 -- | Return full path for blob stored in temp directory
 getTempPath :: TempLocation -> FilePath
-getTempPath loc = baseDir loc </> tempDir </> blobName loc
+getTempPath loc = baseDir loc </> tempDirName </> blobName loc
 
--- | Return full path for blob stored in old directory
-getOldPath :: BlobId -> FilePath
-getOldPath loc = baseDir loc </> oldDir </> blobName loc
+-- | Return full path for blob stored in GC directory
+getGCPath :: BlobId -> FilePath
+getGCPath loc = baseDir loc </> gcDirName </> blobName loc
 
 -- | Return full path for blob stored in active directory
-getActivePath :: BlobId -> FilePath
-getActivePath loc = baseDir loc </> activeDir </> blobName loc
+getCurrPath :: BlobId -> FilePath
+getCurrPath loc = baseDir loc </> currDirName </> blobName loc
 
 -- | Create temp directory if missing
 createTempIfMissing :: FilePath -> IO ()
-createTempIfMissing dir = createDirectoryIfMissing True (dir </> tempDir)
+createTempIfMissing dir = createDirectoryIfMissing True (dir </> tempDirName)
 
 -- | Create active directory if missing
-createActiveIfMissing :: FilePath -> IO ()
-createActiveIfMissing dir = createDirectoryIfMissing True (dir </> activeDir)
+createCurrIfMissing :: FilePath -> IO ()
+createCurrIfMissing dir = createDirectoryIfMissing True (dir </> currDirName)
 
 -- | Creates a unique file in the temp directory
 createUniqueFile :: FilePath -> IO FilePath
 createUniqueFile dir = do
   filename <- fmap toString nextRandom
-  -- Create parent directory if missing
-  let parentDir = dir </> tempDir
-  createDirectoryIfMissing True parentDir
-  let absoluteFilePath = parentDir </> filename
-  createFile absoluteFilePath
+  createFile (dir </> tempDirName </> filename)
   return filename
 
 -- | Move file to active directory
 moveFile :: FilePath -> FilePath -> FilePath -> IO ()
 moveFile path dir filename = renameFile path newPath where
-  newPath = dir </> activeDir </> filename
+  newPath = dir </> currDirName </> filename
 
 -- | Create an empty file.
 -- | If the file exists, replace it with an empty file

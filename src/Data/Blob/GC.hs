@@ -23,13 +23,13 @@ startGC (BlobStore dir) = do
   createDirectory gcDir
   forAllInDirectory currDir (createFileInDir gcDir)
   where
-    gcDir   = dir </> oldDir
-    currDir = dir </> activeDir
+    gcDir   = dir </> gcDirName
+    currDir = dir </> currDirName
 
 -- | Mark a blob as accessible during a GC.
 -- This deletes the corresponding file of blob from GC directory
 markAsAccessible :: BlobId -> IO ()
-markAsAccessible = void . tryIOError . deleteFile . getOldPath
+markAsAccessible = void . tryIOError . deleteFile . getGCPath
 
 -- | Stops the garbage collection.
 -- This deletes the blobs from active directory which
@@ -41,5 +41,5 @@ endGC (BlobStore dir) = do
     forAllInDirectory gcDir (deleteFileInDir currDir)
     removeDirectoryRecursive gcDir
   where
-    gcDir   = dir </> oldDir
-    currDir = dir </> activeDir
+    gcDir   = dir </> gcDirName
+    currDir = dir </> currDirName

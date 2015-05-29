@@ -28,7 +28,7 @@ import           Data.Blob.Types
 initBlobStore :: FilePath -> IO BlobStore
 initBlobStore dir = do
   F.createTempIfMissing dir
-  F.createActiveIfMissing dir
+  F.createCurrIfMissing dir
   return $ BlobStore dir
 
 -- | Create file for storing the blob and open it for writing
@@ -59,7 +59,7 @@ finalizeWrite (WriteContext l h ctx) = do
 
 -- | Open blob for reading
 initRead :: BlobId -> IO ReadContext
-initRead loc = fmap ReadContext $ F.openFileForRead (F.getActivePath loc)
+initRead loc = fmap ReadContext $ F.openFileForRead (F.getCurrPath loc)
 
 -- | Read given number of bytes from the blob handle
 readPartial :: ReadContext -> Int -> IO Blob
@@ -75,4 +75,4 @@ finalizeRead (ReadContext h) = F.closeHandle h
 
 -- | Delete the file corresponding to the blob id
 deleteBlob :: BlobId -> IO ()
-deleteBlob = F.deleteFile . F.getActivePath
+deleteBlob = F.deleteFile . F.getCurrPath
