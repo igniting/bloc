@@ -5,8 +5,19 @@ build-type: Simple
 license: BSD3
 license-file: LICENSE
 maintainer: anshu.avinash35@gmail.com
+homepage: https://github.com/typedb/bloc
+synopsis: Binary Large Objects with Concurrency
+description:
+    This package provides an interface for handling large binary objects (blob).
+    We provide methods for incremental writes, incremental reads and
+    garbage collecting the deleted blobs.
+    The package is not supported under Windows.
 category: Data
 author: Anshu Avinash
+
+source-repository head
+    type: git
+    location: https://github.com/typedb/bloc.git
 
 library
     build-depends:
