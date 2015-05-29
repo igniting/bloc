@@ -14,15 +14,13 @@ import           System.FilePath.Posix    ((</>))
 
 -- | Initialize garbage collection for blobs in a given BlobStore
 -- We create an empty file in the GC directory corresponding to
--- each blob in the active directory
+-- each blob in the active directory.
+-- startGC throws an error if another GC is already running on
+-- the same BlobStore.
 startGC :: BlobStore -> IO ()
 startGC (BlobStore dir) = do
-  checkgcDir <- doesDirectoryExist gcDir
-  if checkgcDir
-     then error "Another GC already in progress."
-     else do
-       createDirectory gcDir
-       forAllInDirectory currDir (createFileInDir gcDir)
+  createDirectory gcDir
+  forAllInDirectory currDir (createFileInDir gcDir)
   where
     gcDir   = dir </> oldDir
     currDir = dir </> activeDir

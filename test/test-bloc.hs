@@ -1,6 +1,8 @@
 import           Data.Blob
 import           Data.Blob.GC
 import           Data.ByteString.Char8   (pack)
+import           System.Directory        (removeDirectoryRecursive)
+import           System.IO.Error         (isAlreadyExistsError)
 import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
@@ -74,6 +76,15 @@ propSkipBytes s1 s2 = monadicIO $ do
   run $ finalizeRead rc
   assert (Blob (pack s2) == bs)
 
+startGCTwice :: IO ()
+startGCTwice = do
+  blobStore <- initBlobStore testDir
+  startGC blobStore
+  startGC blobStore
+
+cleanUp :: IO ()
+cleanUp = removeDirectoryRecursive testDir
+
 main :: IO ()
 main = hspec $ do
   describe "basic" $
@@ -84,3 +95,6 @@ main = hspec $ do
     it "should be able to read blobs during GC" $ property propReadDuringGC
     it "should be able to create blobs during GC" $ property propCreateDuringGC
     it "should be able to read moved blobs during GC" $ property propReadMarkedDuringGC
+    it "should fail when startGC is called twice" $ do
+      startGCTwice `shouldThrow` isAlreadyExistsError
+      cleanUp
