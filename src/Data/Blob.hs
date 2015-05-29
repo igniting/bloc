@@ -22,6 +22,7 @@ module Data.Blob ( Blob (..)
 
 import qualified Crypto.Hash.SHA512       as SHA512
 import qualified Data.Blob.FileOperations as F
+import           Data.Blob.GC             (markAsAccessible)
 import           Data.Blob.Types
 
 initBlobStore :: FilePath -> IO BlobStore
@@ -49,10 +50,12 @@ writePartial (WriteContext l h ctx) (Blob b) = do
 finalizeWrite :: WriteContext -> IO BlobId
 finalizeWrite (WriteContext l h ctx) = do
   F.syncAndClose h
-  let newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
-  F.tryDeleteFileFromOld (baseDir l) newfilename
+  markAsAccessible blobId
   F.moveFile (F.getTempPath l) (baseDir l) newfilename
-  return $ BlobId (baseDir l) newfilename
+  return blobId
+  where
+    newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
+    blobId = BlobId (baseDir l) newfilename
 
 -- | Open blob for reading
 initRead :: BlobId -> IO ReadContext

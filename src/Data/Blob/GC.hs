@@ -6,11 +6,12 @@
 
 module Data.Blob.GC where
 
-import           Control.Monad            (when)
+import           Control.Monad            (void, when)
 import           Data.Blob.FileOperations
 import           Data.Blob.Types
 import           System.Directory
 import           System.FilePath.Posix    ((</>))
+import           System.IO.Error          (tryIOError)
 
 -- | Initialize garbage collection for blobs in a given BlobStore
 -- We create an empty file in the GC directory corresponding to
@@ -27,8 +28,8 @@ startGC (BlobStore dir) = do
 
 -- | Mark a blob as accessible during a GC.
 -- This deletes the corresponding file of blob from GC directory
-markBlobAsAccessible :: BlobId -> IO ()
-markBlobAsAccessible loc = deleteFile (getOldPath loc)
+markAsAccessible :: BlobId -> IO ()
+markAsAccessible = void . tryIOError . deleteFile . getOldPath
 
 -- | Stops the garbage collection.
 -- This deletes the blobs from active directory which

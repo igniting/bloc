@@ -50,7 +50,7 @@ propReadMarkedDuringGC s = monadicIO $ do
   blobStore <- run $ initBlobStore testDir
   loc <- run $ writeStringToBlob s blobStore
   run $ startGC blobStore
-  run $ markBlobAsAccessible loc
+  run $ markAsAccessible loc
   bs <- run $ readFromBlob (length s) loc
   run $ endGC blobStore
   assert (Blob (pack s) == bs)

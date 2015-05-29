@@ -7,7 +7,7 @@
 module Data.Blob.FileOperations where
 
 import           Control.Exception      (bracket)
-import           Control.Monad          (unless, void, when)
+import           Control.Monad          (unless, when)
 import           Data.Blob.Types
 import qualified Data.ByteString        as B
 import           Data.ByteString.Base16 (encode)
@@ -19,7 +19,6 @@ import           Foreign.C.Types        (CInt (..))
 import           System.Directory
 import           System.FilePath.Posix  ((</>))
 import qualified System.IO              as S
-import           System.IO.Error        (tryIOError)
 import           System.Posix.Directory (DirStream, closeDirStream,
                                          openDirStream, readDirStream)
 import           System.Posix.IO        (handleToFd)
@@ -133,10 +132,6 @@ deleteFileInDir :: FilePath -- ^ Base directory
                 -> FilePath -- ^ File name
                 -> IO ()
 deleteFileInDir dir name = deleteFile (dir </> name)
-
--- | Try to delete the given file from gc directory
-tryDeleteFileFromOld :: FilePath -> FilePath -> IO ()
-tryDeleteFileFromOld dir filename = void $ tryIOError $ deleteFile (dir </> oldDir </> filename)
 
 -- | Generate a printable file name
 toFileName :: B.ByteString -> FilePath
