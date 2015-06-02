@@ -101,6 +101,10 @@ writeToHandle = B.hPut
 readFromHandle :: S.Handle -> Int -> IO B.ByteString
 readFromHandle = B.hGet
 
+-- | Read an entire file
+readFile :: FilePath -> IO B.ByteString
+readFile = B.readFile
+
 -- | Skip given number of bytes forward
 seekHandle :: S.Handle -> Integer -> IO ()
 seekHandle handle = S.hSeek handle S.RelativeSeek

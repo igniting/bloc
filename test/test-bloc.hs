@@ -12,73 +12,63 @@ testDir = "/tmp/blob-test-dir"
 
 -- | Write the given string as contents of a blob and return it's location
 writeStringToBlob :: String -> BlobStore -> IO BlobId
-writeStringToBlob s blobStore = createBlob blobStore >>=
-  (\wc -> writePartial wc (Blob (pack s))) >>=
-  finalizeWrite
-
--- | Read given length from a location
-readFromBlob :: Int -> BlobId -> IO Blob
-readFromBlob size loc = do
-  rc <- initRead loc
-  bs <- readPartial rc size
-  finalizeRead rc
-  return bs
+writeStringToBlob s blobStore = createBlob blobStore (Blob (pack s))
 
 -- | Should be able to read from blob just written to
 propWriteAndRead :: String -> Property
 propWriteAndRead s = monadicIO $ do
-  blobStore <- run $ initBlobStore testDir
+  blobStore <- run $ openBlobStore testDir
   loc <- run $ writeStringToBlob s blobStore
-  bs <- run $ readFromBlob (length s) loc
+  bs <- run $ readBlob loc
   assert (Blob (pack s) == bs)
 
 -- | Should be able to read blobs during GC
 propReadDuringGC :: String -> Property
 propReadDuringGC s = monadicIO $ do
-  blobStore <- run $ initBlobStore testDir
+  blobStore <- run $ openBlobStore testDir
   loc <- run $ writeStringToBlob s blobStore
-  rc <- run $ initRead loc
+  rc <- run $ startRead loc
   run $ startGC blobStore
   run $ endGC blobStore
   bs <- run $ readPartial rc (length s)
-  run $ finalizeRead rc
+  run $ endRead rc
   assert (Blob (pack s) == bs)
 
 -- | Should be able to read "safe" blobs during GC
 propReadMarkedDuringGC :: String -> Property
 propReadMarkedDuringGC s = monadicIO $ do
-  blobStore <- run $ initBlobStore testDir
+  blobStore <- run $ openBlobStore testDir
   loc <- run $ writeStringToBlob s blobStore
   run $ startGC blobStore
   run $ markAsAccessible loc
-  bs <- run $ readFromBlob (length s) loc
+  bs <- run $ readBlob loc
   run $ endGC blobStore
   assert (Blob (pack s) == bs)
 
 -- | Should be able to create blobs during GC
 propCreateDuringGC :: String -> Property
 propCreateDuringGC s = monadicIO $ do
-  blobStore <- run $ initBlobStore testDir
+  blobStore <- run $ openBlobStore testDir
   run $ startGC blobStore
   loc <- run $ writeStringToBlob s blobStore
   run $ endGC blobStore
-  bs <- run $ readFromBlob (length s) loc
+  bs <- run $ readBlob loc
   assert (Blob (pack s) == bs)
 
 -- | Should be able to skip bytes while reading
 propSkipBytes :: String -> String -> Property
 propSkipBytes s1 s2 = monadicIO $ do
-  blobStore <- run $ initBlobStore testDir
+  blobStore <- run $ openBlobStore testDir
   loc <- run $ writeStringToBlob (s1 ++ s2) blobStore
-  rc <- run $ initRead loc
+  rc <- run $ startRead loc
   run $ skipBytes rc (fromIntegral $ length s1)
   bs <- run $ readPartial rc (length s2)
-  run $ finalizeRead rc
+  run $ endRead rc
   assert (Blob (pack s2) == bs)
 
 startGCTwice :: IO ()
 startGCTwice = do
-  blobStore <- initBlobStore testDir
+  blobStore <- openBlobStore testDir
   startGC blobStore
   startGC blobStore
 

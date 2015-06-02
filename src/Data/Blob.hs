@@ -9,14 +9,16 @@ module Data.Blob ( Blob (..)
                  , BlobStore
                  , WriteContext
                  , ReadContext
-                 , initBlobStore
-                 , createBlob
+                 , openBlobStore
+                 , newBlob
                  , writePartial
-                 , finalizeWrite
-                 , initRead
+                 , endWrite
+                 , createBlob
+                 , startRead
                  , readPartial
                  , skipBytes
-                 , finalizeRead
+                 , endRead
+                 , readBlob
                  , deleteBlob
                  ) where
 
@@ -25,30 +27,38 @@ import qualified Data.Blob.FileOperations as F
 import           Data.Blob.GC             (markAsAccessible)
 import           Data.Blob.Types
 
-initBlobStore :: FilePath -> IO BlobStore
-initBlobStore dir = do
+-- | Returns a BlobStore.
+-- This method ensures that the base directory exists
+-- and contains tmp and curr subdirectories.
+openBlobStore :: FilePath -> IO BlobStore
+openBlobStore dir = do
   F.createTempIfMissing dir
   F.createCurrIfMissing dir
   return $ BlobStore dir
 
--- | Create file for storing the blob and open it for writing
-createBlob :: BlobStore -> IO WriteContext
-createBlob (BlobStore dir) = do
+-- | Creates an empty blob in the given BlobStore.
+-- Use 'writePartial' to write contents to the newly
+-- created blob.
+newBlob :: BlobStore -> IO WriteContext
+newBlob (BlobStore dir) = do
   filename <- F.createUniqueFile dir
   let temploc = TempLocation dir filename
   h <- F.openFileForWrite $ F.getTempPath temploc
   return $ WriteContext temploc h SHA512.init
 
--- | Write part of blob to a given blob id
+-- | 'writePartial' appends the given blob to the
+-- blob referenced by the 'WriteContext'.
 writePartial :: WriteContext -> Blob -> IO WriteContext
 writePartial (WriteContext l h ctx) (Blob b) = do
   F.writeToHandle h b
   let newctx = SHA512.update ctx b
   return $ WriteContext l h newctx
 
--- | Finalize write
-finalizeWrite :: WriteContext -> IO BlobId
-finalizeWrite (WriteContext l h ctx) = do
+-- | Finalize the write to the given blob.
+-- After calling 'endWrite' no more updates are possible
+-- on the blob.
+endWrite :: WriteContext -> IO BlobId
+endWrite (WriteContext l h ctx) = do
   F.syncAndClose h
   markAsAccessible blobId
   F.moveFile (F.getTempPath l) (baseDir l) newfilename
@@ -57,9 +67,18 @@ finalizeWrite (WriteContext l h ctx) = do
     newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
     blobId = BlobId (baseDir l) newfilename
 
+-- | Create a blob from the given contents.
+-- Use 'createBlob' only for small contents.
+-- For large contents, use the partial write interface
+-- ('newBlob' followed by calls to 'writePartial').
+createBlob :: BlobStore -> Blob -> IO BlobId
+createBlob blobstore blob = newBlob blobstore
+  >>= \wc -> writePartial wc blob
+  >>= endWrite
+
 -- | Open blob for reading
-initRead :: BlobId -> IO ReadContext
-initRead loc = fmap ReadContext $ F.openFileForRead (F.getCurrPath loc)
+startRead :: BlobId -> IO ReadContext
+startRead loc = fmap ReadContext $ F.openFileForRead (F.getCurrPath loc)
 
 -- | Read given number of bytes from the blob handle
 readPartial :: ReadContext -> Int -> IO Blob
@@ -70,8 +89,14 @@ skipBytes :: ReadContext -> Integer -> IO ()
 skipBytes (ReadContext h) = F.seekHandle h
 
 -- | Complete reading from a file
-finalizeRead :: ReadContext -> IO ()
-finalizeRead (ReadContext h) = F.closeHandle h
+endRead :: ReadContext -> IO ()
+endRead (ReadContext h) = F.closeHandle h
+
+-- | Read an entire blob
+-- Use 'readBlob' only for small blobs.
+-- For large blobs, use 'readPartial' instead.
+readBlob :: BlobId -> IO Blob
+readBlob blobid = fmap Blob $ F.readFile (F.getCurrPath blobid)
 
 -- | Delete the file corresponding to the blob id
 deleteBlob :: BlobId -> IO ()
