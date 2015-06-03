@@ -1,7 +1,16 @@
 {-|
   Module      : Data.Blob
-  Description : Library for reading and writing large binary values to disk
   Stability   : Experimental
+  Portability : non-portable (requires POSIX)
+
+  We store each blob (Binary Large Object) as a file. This concept is
+  inspired from maildir format - which stores each message as a file.
+  All the blobs specific to an application are stored inside a directory
+  which is also called 'BlobStore'.
+  .
+  A 'BlobStore' contains three subdirectories - curr, tmp and gc.
+  tmp stores all the partial blobs. This partial blobs are moved to curr
+  by 'finalizeWrite'. Purpose of gc subdirectory is explained in the GC module.
 -}
 
 module Data.Blob ( Blob (..)
@@ -27,8 +36,7 @@ import qualified Data.Blob.FileOperations as F
 import           Data.Blob.GC             (markAsAccessible)
 import           Data.Blob.Types
 
--- | Returns a BlobStore.
--- This method ensures that the base directory exists
+-- | This method ensures that the base directory exists
 -- and contains tmp and curr subdirectories.
 openBlobStore :: FilePath -> IO BlobStore
 openBlobStore dir = do
@@ -68,6 +76,7 @@ endWrite (WriteContext l h ctx) = do
     blobId = BlobId (baseDir l) newfilename
 
 -- | Create a blob from the given contents.
+--
 -- Use 'createBlob' only for small contents.
 -- For large contents, use the partial write interface
 -- ('newBlob' followed by calls to 'writePartial').
@@ -76,28 +85,29 @@ createBlob blobstore blob = newBlob blobstore
   >>= \wc -> writePartial wc blob
   >>= endWrite
 
--- | Open blob for reading
+-- | Open blob for reading.
 startRead :: BlobId -> IO ReadContext
 startRead loc = fmap ReadContext $ F.openFileForRead (F.getCurrPath loc)
 
--- | Read given number of bytes from the blob handle
+-- | Read given number of bytes from the blob.
 readPartial :: ReadContext -> Int -> IO Blob
 readPartial (ReadContext h) sz = fmap Blob $ F.readFromHandle h sz
 
--- | Skip given number of bytes ahead in the blob
+-- | Skip given number of bytes ahead in the blob.
 skipBytes :: ReadContext -> Integer -> IO ()
 skipBytes (ReadContext h) = F.seekHandle h
 
--- | Complete reading from a file
+-- | Complete reading from a blob.
 endRead :: ReadContext -> IO ()
 endRead (ReadContext h) = F.closeHandle h
 
--- | Read an entire blob
+-- | 'readBlob' reads an entire blob.
+--
 -- Use 'readBlob' only for small blobs.
 -- For large blobs, use 'readPartial' instead.
 readBlob :: BlobId -> IO Blob
 readBlob blobid = fmap Blob $ F.readFile (F.getCurrPath blobid)
 
--- | Delete the file corresponding to the blob id
+-- | Delete the file corresponding to the blob id.
 deleteBlob :: BlobId -> IO ()
 deleteBlob = F.deleteFile . F.getCurrPath

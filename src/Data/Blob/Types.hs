@@ -1,7 +1,7 @@
 {-|
   Module      : Data.Blob.Types
-  Description : Type definitions
   Stability   : Experimental
+  Portability : non-portable (requires POSIX)
 -}
 
 module Data.Blob.Types where
@@ -10,8 +10,10 @@ import           Crypto.Hash.SHA512
 import           Data.ByteString    (ByteString)
 import           System.IO
 
+-- | Wrapper around strict 'ByteString'.
 newtype Blob = Blob ByteString deriving (Eq)
 
+-- | This is used to store the base directory
 newtype BlobStore = BlobStore FilePath
 
 class Location a where
@@ -35,4 +37,6 @@ data WriteContext = WriteContext { writeLoc    :: TempLocation
                                  , hashCtx     :: Ctx
                                  }
 
+-- | ReadContext stores the file handle which has been opened
+-- for reading.
 data ReadContext = ReadContext Handle
