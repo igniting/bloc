@@ -1,7 +1,10 @@
 {-|
   Module      : Data.Blob.GC
-  Description : Methods related to garbage collection of blobs
   Stability   : Experimental
+  Portability : non-portable (requires POSIX)
+
+  This module contains methods related to the garbage collection
+  of the deleted blobs.
 -}
 
 module Data.Blob.GC where
@@ -13,9 +16,8 @@ import           System.Directory
 import           System.FilePath.Posix    ((</>))
 import           System.IO.Error          (tryIOError)
 
--- | Initialize garbage collection for blobs in a given BlobStore
--- We create an empty file in the GC directory corresponding to
--- each blob in the active directory.
+-- | Initialize garbage collection for blobs in a given BlobStore.
+--
 -- startGC throws an error if another GC is already running on
 -- the same BlobStore.
 startGC :: BlobStore -> IO ()
@@ -27,13 +29,19 @@ startGC (BlobStore dir) = do
     currDir = dir </> currDirName
 
 -- | Mark a blob as accessible during a GC.
--- This deletes the corresponding file of blob from GC directory
+--
+-- You have to ensure that all the blobs which are accessible
+-- are marked by 'markAsAccessible' before calling 'endGC'.
+--
+-- Blobs which are created after 'startGC' had finished need not
+-- be marked.
 markAsAccessible :: BlobId -> IO ()
 markAsAccessible = void . tryIOError . deleteFile . getGCPath
 
 -- | Stops the garbage collection.
--- This deletes the blobs from active directory which
--- still have a corresponding file in the GC directory
+--
+-- This will __delete all the blobs which have not been marked__
+-- by 'markAsAccessible' and created before 'startGC' had finished.
 endGC :: BlobStore -> IO ()
 endGC (BlobStore dir) = do
   checkgcDir <- doesDirectoryExist gcDir

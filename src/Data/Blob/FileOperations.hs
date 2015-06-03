@@ -1,7 +1,7 @@
 {-|
   Module      : Data.Blob.FileOperations
-  Description : Contains wrapper for all file operations
   Stability   : Experimental
+  Portability : non-portable (requires POSIX)
 -}
 
 module Data.Blob.FileOperations where
@@ -117,10 +117,11 @@ closeHandle = S.hClose
 syncAndClose :: S.Handle -> IO ()
 syncAndClose handle = handleToFd handle >>= fsync
 
--- | Binding to the C fsync function
+-- | Binding to the C @fsync@ function
 fsync :: Fd -> IO ()
 fsync (Fd fd) = throwErrnoIfMinus1_ "fsync" $ c_fsync fd
 
+-- | Foreign interface for @fsync@ function
 foreign import ccall "fsync" c_fsync :: CInt -> IO CInt
 
 -- | Delete the given file

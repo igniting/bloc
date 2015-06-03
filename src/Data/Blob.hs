@@ -1,7 +1,17 @@
 {-|
   Module      : Data.Blob
-  Description : Library for reading and writing large binary values to disk
   Stability   : Experimental
+  Portability : non-portable (requires POSIX)
+
+  This module provides interface for handling large objects -
+  also known as blobs.
+
+  One of the use cases for bloc is storing large objects in databases.
+  Instead of storing the entire blob in the database, you can just store
+  the 'BlobId' of the blob.
+
+  Multiple values in the database can share a 'BlobId' and we provide an
+  interface for garbage collection for such cases.
 -}
 
 module Data.Blob ( Blob (..)
@@ -27,9 +37,9 @@ import qualified Data.Blob.FileOperations as F
 import           Data.Blob.GC             (markAsAccessible)
 import           Data.Blob.Types
 
--- | Returns a BlobStore.
--- This method ensures that the base directory exists
--- and contains tmp and curr subdirectories.
+-- | All the blobs of an application are stored in the
+-- same directory. 'openBlobStore' returns the 'BlobStore'
+-- corresponding to a given directory.
 openBlobStore :: FilePath -> IO BlobStore
 openBlobStore dir = do
   F.createTempIfMissing dir
@@ -37,6 +47,7 @@ openBlobStore dir = do
   return $ BlobStore dir
 
 -- | Creates an empty blob in the given BlobStore.
+--
 -- Use 'writePartial' to write contents to the newly
 -- created blob.
 newBlob :: BlobStore -> IO WriteContext
@@ -55,6 +66,7 @@ writePartial (WriteContext l h ctx) (Blob b) = do
   return $ WriteContext l h newctx
 
 -- | Finalize the write to the given blob.
+--
 -- After calling 'endWrite' no more updates are possible
 -- on the blob.
 endWrite :: WriteContext -> IO BlobId
@@ -68,6 +80,7 @@ endWrite (WriteContext l h ctx) = do
     blobId = BlobId (baseDir l) newfilename
 
 -- | Create a blob from the given contents.
+--
 -- Use 'createBlob' only for small contents.
 -- For large contents, use the partial write interface
 -- ('newBlob' followed by calls to 'writePartial').
@@ -76,28 +89,33 @@ createBlob blobstore blob = newBlob blobstore
   >>= \wc -> writePartial wc blob
   >>= endWrite
 
--- | Open blob for reading
+-- | Open blob for reading.
 startRead :: BlobId -> IO ReadContext
 startRead loc = fmap ReadContext $ F.openFileForRead (F.getCurrPath loc)
 
--- | Read given number of bytes from the blob handle
+-- | Read given number of bytes from the blob.
 readPartial :: ReadContext -> Int -> IO Blob
 readPartial (ReadContext h) sz = fmap Blob $ F.readFromHandle h sz
 
--- | Skip given number of bytes ahead in the blob
+-- | Skip given number of bytes ahead in the blob.
 skipBytes :: ReadContext -> Integer -> IO ()
 skipBytes (ReadContext h) = F.seekHandle h
 
--- | Complete reading from a file
+-- | Complete reading from a blob.
 endRead :: ReadContext -> IO ()
 endRead (ReadContext h) = F.closeHandle h
 
--- | Read an entire blob
+-- | 'readBlob' reads an entire blob.
+--
 -- Use 'readBlob' only for small blobs.
 -- For large blobs, use 'readPartial' instead.
 readBlob :: BlobId -> IO Blob
 readBlob blobid = fmap Blob $ F.readFile (F.getCurrPath blobid)
 
--- | Delete the file corresponding to the blob id
+-- | Deletes the given blob.
+--
+-- Use 'deleteBlob' only when you are sure that the given blob
+-- is not accessible by anyone. If the blob is shared, you should
+-- use the GC interface instead.
 deleteBlob :: BlobId -> IO ()
 deleteBlob = F.deleteFile . F.getCurrPath
