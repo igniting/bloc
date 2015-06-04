@@ -1,8 +1,9 @@
+import           Control.Concurrent.Async (async, wait)
 import           Data.Blob
 import           Data.Blob.GC
-import           Data.ByteString.Char8   (pack)
-import           System.Directory        (removeDirectoryRecursive)
-import           System.IO.Error         (isAlreadyExistsError)
+import           Data.ByteString.Char8    (pack)
+import           System.Directory         (removeDirectoryRecursive)
+import           System.IO.Error          (isAlreadyExistsError)
 import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
@@ -69,8 +70,11 @@ propSkipBytes s1 s2 = monadicIO $ do
 startGCTwice :: IO ()
 startGCTwice = do
   blobStore <- openBlobStore testDir
-  startGC blobStore
-  startGC blobStore
+  t1 <- async $ startGC blobStore
+  t2 <- async $ startGC blobStore
+  wait t1
+  wait t2
+  return ()
 
 cleanUp :: IO ()
 cleanUp = removeDirectoryRecursive testDir
