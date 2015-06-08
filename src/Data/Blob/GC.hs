@@ -51,3 +51,15 @@ endGC (BlobStore dir) = do
   where
     gcDir   = dir </> gcDirName
     currDir = dir </> currDirName
+
+-- | 'markAccessibleBlobs' takes a list of 'BlobId' which are still
+-- accessible. 'markAccessibleBlobs' deletes the remaining blobs.
+--
+-- It is safer to use this method instead of using 'startGC' and 'endGC',
+-- since if you forget to mark all the accessible blobs using
+-- 'markAsAccessible', 'endGC' might end up deleting accessible blobs.
+markAccessibleBlobs :: BlobStore -> [BlobId] -> IO ()
+markAccessibleBlobs blobstore blobids = do
+  startGC blobstore
+  mapM_ markAsAccessible blobids
+  endGC blobstore
