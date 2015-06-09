@@ -74,6 +74,7 @@ endWrite (WriteContext l h ctx) = do
   F.syncAndClose h
   markAsAccessible blobId
   F.moveFile (F.getTempPath l) (baseDir l) newfilename
+  F.syncCurrDir (baseDir l)
   return blobId
   where
     newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)

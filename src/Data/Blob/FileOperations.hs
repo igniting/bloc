@@ -21,7 +21,7 @@ import           System.FilePath.Posix  ((</>))
 import qualified System.IO              as S
 import           System.Posix.Directory (DirStream, closeDirStream,
                                          openDirStream, readDirStream)
-import           System.Posix.IO        (handleToFd)
+import qualified System.Posix.IO        as P
 import           System.Posix.Types     (Fd (..))
 
 -- | Directory for storing partial blobs
@@ -115,7 +115,7 @@ closeHandle = S.hClose
 
 -- | Sync the data to disk
 syncAndClose :: S.Handle -> IO ()
-syncAndClose handle = handleToFd handle >>= fdatasync
+syncAndClose handle = P.handleToFd handle >>= fdatasync
 
 -- | Binding to the C @fdatasync@ function
 fdatasync :: Fd -> IO ()
@@ -123,6 +123,14 @@ fdatasync (Fd fd) = throwErrnoIfMinus1_ "fdatasync" $ c_fdatasync fd
 
 -- | Foreign interface for @fdatasync@ function
 foreign import ccall "fdatasync" c_fdatasync :: CInt -> IO CInt
+
+-- | Call @fdatasync@ on a directory
+syncDir :: FilePath -> IO ()
+syncDir dir = P.openFd dir P.ReadOnly Nothing P.defaultFileFlags >>= fdatasync
+
+-- | Sync the curr dir of a given base directory
+syncCurrDir :: FilePath -> IO ()
+syncCurrDir basedir = syncDir (basedir </> currDirName)
 
 -- | Delete the given file
 deleteFile :: FilePath -> IO ()
