@@ -126,7 +126,10 @@ foreign import ccall "fdatasync" c_fdatasync :: CInt -> IO CInt
 
 -- | Call @fdatasync@ on a directory
 syncDir :: FilePath -> IO ()
-syncDir dir = P.openFd dir P.ReadOnly Nothing P.defaultFileFlags >>= fdatasync
+syncDir dir = bracket
+  (P.openFd dir P.ReadOnly Nothing P.defaultFileFlags)
+  P.closeFd
+  fdatasync
 
 -- | Sync the curr dir of a given base directory
 syncCurrDir :: FilePath -> IO ()
