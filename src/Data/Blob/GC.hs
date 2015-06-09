@@ -9,12 +9,12 @@
 
 module Data.Blob.GC where
 
-import           Control.Monad            (void, when)
+import           Control.Concurrent       (threadDelay)
+import           Control.Monad            (when)
+import           Data.Blob.Directories
 import           Data.Blob.FileOperations
 import           Data.Blob.Types
 import           System.Directory
-import           System.FilePath.Posix    ((</>))
-import           System.IO.Error          (tryIOError)
 
 -- | Initialize garbage collection for blobs in a given BlobStore.
 --
@@ -22,11 +22,9 @@ import           System.IO.Error          (tryIOError)
 -- the same BlobStore.
 startGC :: BlobStore -> IO ()
 startGC (BlobStore dir) = do
-  createDirectory gcDir
-  forAllInDirectory currDir (createFileInDir gcDir)
-  where
-    gcDir   = dir </> gcDirName
-    currDir = dir </> currDirName
+  renameDirectory (currDir dir) (gcDir dir)
+  createDir (currDir dir)
+  createFileInDir (currDir dir) metadataFile
 
 -- | Mark a blob as accessible during a GC.
 --
@@ -36,21 +34,19 @@ startGC (BlobStore dir) = do
 -- Blobs which are created after 'startGC' had finished need not
 -- be marked.
 markAsAccessible :: BlobId -> IO ()
-markAsAccessible = void . tryIOError . deleteFile . getGCPath
+markAsAccessible loc = moveFile (getFullPath gcDirName loc) (getFullPath currDirName loc)
 
 -- | Stops the garbage collection.
 --
 -- This will __delete all the blobs which have not been marked__
 -- by 'markAsAccessible' and created before 'startGC' had finished.
-endGC :: BlobStore -> IO ()
-endGC (BlobStore dir) = do
-  checkgcDir <- doesDirectoryExist gcDir
+endGC :: BlobStore -> Int -> IO ()
+endGC (BlobStore dir) delay = do
+  checkgcDir <- doesDirectoryExist (gcDir dir)
   when checkgcDir $ do
-    forAllInDirectory gcDir (deleteFileInDir currDir)
-    removeDirectoryRecursive gcDir
-  where
-    gcDir   = dir </> gcDirName
-    currDir = dir </> currDirName
+    syncDir (currDir dir)
+    threadDelay delay
+    removeDirectoryRecursive (gcDir dir)
 
 -- | 'markAccessibleBlobs' takes a list of 'BlobId' which are still
 -- accessible. 'markAccessibleBlobs' deletes the remaining blobs.
@@ -58,8 +54,8 @@ endGC (BlobStore dir) = do
 -- It is safer to use this method instead of using 'startGC' and 'endGC',
 -- since if you forget to mark all the accessible blobs using
 -- 'markAsAccessible', 'endGC' might end up deleting accessible blobs.
-markAccessibleBlobs :: BlobStore -> [BlobId] -> IO ()
-markAccessibleBlobs blobstore blobids = do
+markAccessibleBlobs :: BlobStore -> Int -> [BlobId] -> IO ()
+markAccessibleBlobs blobstore delay blobids = do
   startGC blobstore
   mapM_ markAsAccessible blobids
-  endGC blobstore
+  endGC blobstore delay

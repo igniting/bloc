@@ -32,18 +32,21 @@ module Data.Blob ( Blob (..)
                  , deleteBlob
                  ) where
 
+import           Control.Monad            ((<=<))
 import qualified Crypto.Hash.SHA512       as SHA512
+import           Data.Blob.Directories
 import qualified Data.Blob.FileOperations as F
-import           Data.Blob.GC             (markAsAccessible)
 import           Data.Blob.Types
+import           System.Directory         (renameFile)
 
 -- | All the blobs of an application are stored in the
 -- same directory. 'openBlobStore' returns the 'BlobStore'
 -- corresponding to a given directory.
 openBlobStore :: FilePath -> IO BlobStore
 openBlobStore dir = do
-  F.createTempIfMissing dir
-  F.createCurrIfMissing dir
+  mapM_ F.createDir [dir, tempDir dir, currDir dir]
+  F.createFileInDir (currDir dir) metadataFile
+  F.recoverFromGC dir
   return $ BlobStore dir
 
 -- | Creates an empty blob in the given BlobStore.
@@ -54,7 +57,7 @@ newBlob :: BlobStore -> IO WriteContext
 newBlob (BlobStore dir) = do
   filename <- F.createUniqueFile dir
   let temploc = TempLocation dir filename
-  h <- F.openFileForWrite $ F.getTempPath temploc
+  h <- F.openFileForWrite $ getFullPath tempDirName temploc
   return $ WriteContext temploc h SHA512.init
 
 -- | 'writePartial' appends the given blob to the
@@ -72,9 +75,8 @@ writePartial (WriteContext l h ctx) (Blob b) = do
 endWrite :: WriteContext -> IO BlobId
 endWrite (WriteContext l h ctx) = do
   F.syncAndClose h
-  markAsAccessible blobId
-  F.moveFile (F.getTempPath l) (baseDir l) newfilename
-  F.syncCurrDir (baseDir l)
+  renameFile (getFullPath tempDirName l) (getFullPath currDirName blobId)
+  F.syncDir (currDir (baseDir l))
   return blobId
   where
     newfilename = "sha512-" ++ F.toFileName (SHA512.finalize ctx)
@@ -92,7 +94,7 @@ createBlob blobstore blob = newBlob blobstore
 
 -- | Open blob for reading.
 startRead :: BlobId -> IO ReadContext
-startRead loc = fmap ReadContext $ F.openFileForRead (F.getCurrPath loc)
+startRead = fmap ReadContext . F.getHandle
 
 -- | Read given number of bytes from the blob.
 readPartial :: ReadContext -> Int -> IO Blob
@@ -111,7 +113,7 @@ endRead (ReadContext h) = F.closeHandle h
 -- Use 'readBlob' only for small blobs.
 -- For large blobs, use 'readPartial' instead.
 readBlob :: BlobId -> IO Blob
-readBlob blobid = fmap Blob $ F.readFile (F.getCurrPath blobid)
+readBlob = fmap Blob . F.readAllFromHandle <=< F.getHandle
 
 -- | Deletes the given blob.
 --
@@ -119,4 +121,4 @@ readBlob blobid = fmap Blob $ F.readFile (F.getCurrPath blobid)
 -- is not accessible by anyone. If the blob is shared, you should
 -- use the GC interface instead.
 deleteBlob :: BlobId -> IO ()
-deleteBlob = F.deleteFile . F.getCurrPath
+deleteBlob = F.deleteFile . getFullPath currDirName

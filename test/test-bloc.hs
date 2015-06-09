@@ -2,13 +2,15 @@ import           Data.Blob
 import           Data.Blob.GC
 import           Data.ByteString.Char8   (pack)
 import           System.Directory        (removeDirectoryRecursive)
-import           System.IO.Error         (isAlreadyExistsError)
 import           Test.Hspec
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
 testDir :: FilePath
 testDir = "/tmp/blob-test-dir"
+
+gcDelay :: Int
+gcDelay = 0
 
 -- | Write the given string as contents of a blob and return it's location
 writeStringToBlob :: String -> BlobStore -> IO BlobId
@@ -29,7 +31,7 @@ propReadDuringGC s = monadicIO $ do
   loc <- run $ writeStringToBlob s blobStore
   rc <- run $ startRead loc
   run $ startGC blobStore
-  run $ endGC blobStore
+  run $ endGC blobStore gcDelay
   bs <- run $ readPartial rc (length s)
   run $ endRead rc
   assert (Blob (pack s) == bs)
@@ -42,7 +44,7 @@ propReadMarkedDuringGC s = monadicIO $ do
   run $ startGC blobStore
   run $ markAsAccessible loc
   bs <- run $ readBlob loc
-  run $ endGC blobStore
+  run $ endGC blobStore gcDelay
   assert (Blob (pack s) == bs)
 
 -- | Should be able to create blobs during GC
@@ -51,7 +53,7 @@ propCreateDuringGC s = monadicIO $ do
   blobStore <- run $ openBlobStore testDir
   run $ startGC blobStore
   loc <- run $ writeStringToBlob s blobStore
-  run $ endGC blobStore
+  run $ endGC blobStore gcDelay
   bs <- run $ readBlob loc
   assert (Blob (pack s) == bs)
 
@@ -86,5 +88,5 @@ main = hspec $ do
     it "should be able to create blobs during GC" $ property propCreateDuringGC
     it "should be able to read moved blobs during GC" $ property propReadMarkedDuringGC
     it "should fail when startGC is called twice" $ do
-      startGCTwice `shouldThrow` isAlreadyExistsError
+      startGCTwice `shouldThrow` anyIOException
       cleanUp
