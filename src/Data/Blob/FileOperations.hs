@@ -115,14 +115,14 @@ closeHandle = S.hClose
 
 -- | Sync the data to disk
 syncAndClose :: S.Handle -> IO ()
-syncAndClose handle = handleToFd handle >>= fsync
+syncAndClose handle = handleToFd handle >>= fdatasync
 
--- | Binding to the C @fsync@ function
-fsync :: Fd -> IO ()
-fsync (Fd fd) = throwErrnoIfMinus1_ "fsync" $ c_fsync fd
+-- | Binding to the C @fdatasync@ function
+fdatasync :: Fd -> IO ()
+fdatasync (Fd fd) = throwErrnoIfMinus1_ "fdatasync" $ c_fdatasync fd
 
--- | Foreign interface for @fsync@ function
-foreign import ccall "fsync" c_fsync :: CInt -> IO CInt
+-- | Foreign interface for @fdatasync@ function
+foreign import ccall "fdatasync" c_fdatasync :: CInt -> IO CInt
 
 -- | Delete the given file
 deleteFile :: FilePath -> IO ()
